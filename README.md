@@ -49,7 +49,7 @@ All images were preprocessed to:
 - Normalized to 0–1
 - Resized to (128×128 / 150×150)
 
-## 🧪 Sample Output
+##  Sample Output
  deployment link 
  https://braintumourdetection0.streamlit.app/
 
