@@ -45,7 +45,7 @@ CLASS_NAMES = ['Glioma', 'Meningioma', 'Pituitary', 'No Tumor']
 # 🖼️ Preprocessing function
 # --------------------------------------------------------
 def preprocess_image(img):
-    img = img.resize((224, 224))          # Change if your model uses different size
+    img = img.resize((128, 128))          # Change if your model uses different size
     img_array = np.array(img) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
     return img_array
@@ -99,4 +99,5 @@ elif mode == "📸 Capture from Webcam":
 
             st.success(f"### 🧠 Prediction: **{label}**")
             st.info(f"Confidence: **{confidence:.2f}%**")
+
 
