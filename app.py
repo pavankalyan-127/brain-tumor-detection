@@ -1,92 +1,102 @@
 import streamlit as st
 import numpy as np
 import cv2
+import os
 from PIL import Image
 import tensorflow as tf
-import os
 
-# -----------------------------
-# 🔍 Auto-detect available model
-# -----------------------------
+st.set_page_config(page_title="Brain Tumor Detection", layout="centered")
+
+# --------------------------------------------------------
+# 🔍 Find Model Automatically inside the app/ folder
+# --------------------------------------------------------
 def find_model():
+    paths = [
+        "app/model.h5",
+        "app/model.keras",
+        "app/brain_tumor_model.h5"
+    ]
     
-    if os.path.exists("model.h5"):
-        return "model.h5"
-    elif os.path.exists("model.keras"):
-        return "model.keras"
-    else:
-        st.error("❌ No model file found! Upload model.h5 or model.keras in the same folder.")
-        st.stop()
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return None
 
-MODEL_PATH = find_model()
-
-# -----------------------------
-# 🧩 Load your trained model
-# -----------------------------
+# --------------------------------------------------------
+# 🧠 Load the model (cached)
+# --------------------------------------------------------
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model(MODEL_PATH)
-
+    model_path = find_model()
+    if model_path is None:
+        st.error("❌ No model file found in app/ folder!")
+        st.stop()
+    st.success(f"Model loaded: {model_path}")
+    return tf.keras.models.load_model(model_path)
 
 model = load_model()
-st.success(f"✅ Loaded model: **{MODEL_PATH}**")
 
-# 🧠 Define class labels
+# --------------------------------------------------------
+# 🧠 Class labels
+# --------------------------------------------------------
 CLASS_NAMES = ['Glioma', 'Meningioma', 'Pituitary', 'No Tumor']
 
-st.title("🧠 Brain Tumor Detection using CNN")
-st.write("Upload an MRI image or capture from webcam to classify tumor type.")
-
-# Sidebar options
-option = st.sidebar.radio("Choose Input Mode", ("Upload Image", "Capture from Webcam"))
-
-# -----------------------------
-# 🖼️ Preprocess Function
-# -----------------------------
+# --------------------------------------------------------
+# 🖼️ Preprocessing function
+# --------------------------------------------------------
 def preprocess_image(img):
-    img = img.resize((128, 128))  # change this to your training input size
+    img = img.resize((224, 224))          # Change if your model uses different size
     img_array = np.array(img) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
     return img_array
 
-# -----------------------------
+# --------------------------------------------------------
+# 🎨 Streamlit UI
+# --------------------------------------------------------
+st.title("🧠 Brain Tumor Detection using CNN")
+st.write("Upload an MRI image or capture via webcam to classify tumor type.")
+
+mode = st.sidebar.radio("Select Mode:", ["📤 Upload Image", "📸 Capture from Webcam"])
+
+# --------------------------------------------------------
 # 📤 Upload Image
-# -----------------------------
-if option == "Upload Image":
-    uploaded_file = st.file_uploader("Upload MRI image...", type=["jpg", "jpeg", "png"])
+# --------------------------------------------------------
+if mode == "📤 Upload Image":
+    uploaded_file = st.file_uploader("Upload MRI image", type=["jpg", "jpeg", "png"])
 
     if uploaded_file is not None:
-        image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="Uploaded MRI Image", use_container_width=True)
+        img = Image.open(uploaded_file).convert("RGB")
+        st.image(img, caption="Uploaded MRI Image", use_column_width=True)
 
-        if st.button("🔍 Predict Tumor"):
-            input_data = preprocess_image(image)
+        if st.button("🔍 Predict"):
+            input_data = preprocess_image(img)
             preds = model.predict(input_data)[0]
+
             label = CLASS_NAMES[np.argmax(preds)]
             confidence = np.max(preds) * 100
 
-            st.success(f"🧠 Prediction: **{label}** ({confidence:.2f}% confidence)")
+            st.success(f"### 🧠 Prediction: **{label}**")
+            st.info(f"Confidence: **{confidence:.2f}%**")
 
-# -----------------------------
-# 📸 Webcam Capture
-# -----------------------------
-elif option == "Capture from Webcam":
-    st.write("Click below to capture an MRI-like image.")
+# --------------------------------------------------------
+# 📸 Webcam Mode
+# --------------------------------------------------------
+elif mode == "📸 Capture from Webcam":
+    st.write("Use your webcam to capture an MRI image.")
 
-    camera_image = st.camera_input("Capture MRI Image")
+    camera_img = st.camera_input("Take a picture")
 
-    if camera_image:
-        image = Image.open(camera_image).convert("RGB")
-        st.image(image, caption="Captured MRI Image", use_container_width=True)
+    if camera_img is not None:
+        img = Image.open(camera_img).convert("RGB")
+        st.image(img, caption="Captured MRI Image", use_column_width=True)
 
-        if st.button("🔍 Predict Tumor"):
-            input_data = preprocess_image(image)
+        if st.button("🔍 Predict"):
+            input_data = preprocess_image(img)
             preds = model.predict(input_data)[0]
+
             label = CLASS_NAMES[np.argmax(preds)]
             confidence = np.max(preds) * 100
 
-            st.success(f"🧠 Prediction: **{label}** ({confidence:.2f}% confidence)")
-# import os
-# print("FILES IN CURREN
-#T FOLDER:", os.listdir("."))
-# import streamlit as st
+            st.success(f"### 🧠 Prediction: **{label}**")
+            st.info(f"Confidence: **{confidence:.2f}%**")
+
